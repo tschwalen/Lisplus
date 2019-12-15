@@ -8,7 +8,16 @@
 using std::string;
 
 
+struct cons_cell_t {
 
+	union car {
+		int          Int;
+		float        Float;
+		std::string* Str;
+		cons_cell_t* Car;
+	};
+	cons_cell_t* cdr;
+};
 
 /*
  * given a string, returns a vector of strings representing the lisp-tokenization of that string
