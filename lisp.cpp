@@ -95,7 +95,14 @@ int apply_op(std::string &op, int a, int b) {
 
 
 // let's just try handling some simple operations with any number of expressions first
-int eval( std::vector<string> &expression, int start=0 ) {
+std::pair<int, int> eval( std::vector<string> &expression, int start=0 ) {
+
+
+	// issue: nesting quickly becomes a problem because I have to make sure index gets updated
+	// possible solutions:
+	// 		- Pass index as a int* and update it from every function - NO 
+	//      - Make index a global variable and update it from every function - NO
+	//		- Return the updated index as a second return value -> std::pair, std::tuple, std::tie - YES
 
 	/*
 	   |
@@ -111,6 +118,9 @@ int eval( std::vector<string> &expression, int start=0 ) {
 	[ '(', +, 3, 4, 5 ')' ]
 
 	*/
+	if(expression[start] != "(" )
+		return std::make_pair(std::stoi(expression[start]), start);
+
 
 	int index = start + 1;
 	
@@ -120,21 +130,24 @@ int eval( std::vector<string> &expression, int start=0 ) {
 
 
 	// TODO: make it possible for this to be a sub S-exp too
-	int left = std::stoi(expression[index]);
+	std::pair<int, int> first_result = eval(expression, index);
+	index = first_result.second;
+
+	int left = first_result.first;
 	int right = 0;
 
 
 	while (index < expression.size()) {
 
-		if( expression[index + 1] == ")" )
+		if( expression[index + 1] == ")" ){
+			++index;
 			break;
+		}
 		else if( expression[index + 1] == "(" ) {
-			right = eval(expression, index + 1);
+			std::pair<int, int> result = eval(expression, index + 1);
+			right = result.first;
+			index = result.second - 1;
 
-			// hacky but it works
-			while(expression[index] != ")")
-				++index;
-			--index;
 		}
 		else {
 			right = std::stoi(expression[index + 1]);
@@ -148,7 +161,7 @@ int eval( std::vector<string> &expression, int start=0 ) {
 
 
 	//std::cout << left << "_\n";
-	return left;
+	return std::make_pair(left, index);
 }
 
 
@@ -160,7 +173,7 @@ int main( int argc, const char* argv[] )
 	std::string temp = argv[1];
 	std::vector<string> expr = tokenize(temp);
 
-	int r = eval(expr);
+	std::pair<int, int> r = eval(expr);
 
-	std::cout << r << "\n";
+	std::cout << r.first << "\n";
 }
