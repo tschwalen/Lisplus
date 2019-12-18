@@ -80,20 +80,64 @@ std::vector<std::string> tokenize( std::string &chars ) {
 	return tokens;
 }
 
-int apply_op(std::string &op, int a, int b) {
+float apply_op(std::string &op, float a, float b) {
 
-	if(op == "+") {
+	if (op == "+") {
 		return a + b;
 	}
-	else if( op == "-") {
+	else if (op == "-") {
 		return a - b;
 	}
-	else if(op == "*") {
+	else if (op == "*") {
 		return a * b;
 	}
+	else if (op == "/") {
+		return a / b;
+	}
 	return a;
-
 }
+
+int apply_op(std::string &op, int a, int b) {
+
+	if (op == "+") {
+		return a + b;
+	}
+	else if (op == "-") {
+		return a - b;
+	}
+	else if (op == "*") {
+		return a * b;
+	}
+	else if (op == "/") {
+		return a / b;
+	}
+	else if (op == "%") {
+		return a % b;
+	}
+	return a;
+}
+
+numeric_t apply_op( std::string &op, numeric_t a, numeric_t b ) {
+
+	numeric_t op_result;
+
+	// the result can only be an int if both operands are ints, otherwise the result has to be a float
+	if(a.Tag == numeric_t::INT && b.Tag == numeric_t::INT) {
+		op_result.Tag = numeric_t::INT;
+		op_result.Int = apply_op(op, a.Int, b.Int);
+	}
+	else {
+		op_result.Tag = numeric_t::FLOAT;
+
+		float fa = a.Tag == numeric_t::FLOAT ? a.Float : a.Int;
+		float fb = b.Tag == numeric_t::FLOAT ? b.Float : b.Int;
+
+		op_result.Float = apply_op(op, fa, fb);
+	}
+
+	return op_result;
+}
+
 
 // converts the string representation of a integer or float into our numeric union-like object
 numeric_t get_numeric_literal( std::string &src ) {
@@ -117,13 +161,13 @@ numeric_t get_numeric_literal( std::string &src ) {
 
 
 // let's just try handling some simple operations with any number of expressions first
-std::pair<int, int> eval( std::vector<string> &expression, int start=0 ) {
+std::pair<numeric_t, int> eval( std::vector<string> &expression, int start=0 ) {
 
 
 	// if this expression does not start with an lparen, then we just return the 
 	// value that we're pointed at
 	if(expression[start] != "(" )
-		return std::make_pair(std::stoi(expression[start]), start);
+		return std::make_pair(get_numeric_literal(expression[start]), start);
 
 
 	int index = start + 1;
@@ -132,11 +176,11 @@ std::pair<int, int> eval( std::vector<string> &expression, int start=0 ) {
 	std::string op = expression[index];
 	++index;
 
-	std::pair<int, int> first_result = eval(expression, index);
+	std::pair<numeric_t, int> first_result = eval(expression, index);
 	index = first_result.second;
 
-	int left = first_result.first;
-	int right = 0;
+	numeric_t left = first_result.first;
+	numeric_t right = {numeric_t::INT, 0};
 
 
 	while (index < expression.size()) {
@@ -146,13 +190,13 @@ std::pair<int, int> eval( std::vector<string> &expression, int start=0 ) {
 			break;
 		}
 		else if( expression[index + 1] == "(" ) {
-			std::pair<int, int> result = eval(expression, index + 1);
+			std::pair<numeric_t, int> result = eval(expression, index + 1);
 			right = result.first;
 			index = result.second - 1;
 
 		}
 		else {
-			right = std::stoi(expression[index + 1]);
+			right = get_numeric_literal(expression[index + 1]);
 		}
 
 		
@@ -161,8 +205,6 @@ std::pair<int, int> eval( std::vector<string> &expression, int start=0 ) {
 		++index;
 	}
 
-
-	//std::cout << left << "_\n";
 	return std::make_pair(left, index);
 }
 
@@ -175,7 +217,13 @@ int main( int argc, const char* argv[] )
 	std::string temp = argv[1];
 	std::vector<string> expr = tokenize(temp);
 
-	std::pair<int, int> r = eval(expr);
+	std::pair<numeric_t, int> r = eval(expr);
 
-	std::cout << r.first << "\n";
+	if(r.first.Tag == numeric_t::INT) {
+		std::cout << r.first.Int << "\n";
+	}
+	else {
+		std::cout << r.first.Float << "\n";
+	}
+	
 }
