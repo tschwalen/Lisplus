@@ -11,14 +11,25 @@ using std::string;
 
 struct cons_cell_t {
 
-	union car {
+	union car_t {
 		int          Int;
 		float        Float;
 		std::string* Str;
 		cons_cell_t* Car;
-	};
+	} car;
 	cons_cell_t* cdr;
 };
+
+
+struct numeric_t {
+
+    enum{INT, FLOAT} Tag;
+    union {
+        int Int;
+        double Float;
+    };
+};
+
 
 /*
  * given a string, returns a vector of strings representing the lisp-tokenization of that string
@@ -66,15 +77,6 @@ std::vector<std::string> tokenize( std::string &chars ) {
 		}
 	}
 
-	/*
-	printf("\n");
-	for(std::vector<std::string>::const_iterator i = tokens.begin(); i != tokens.end(); ++i) {
-	    // process i
-	    std::cout << *i << "\n"; // this will print all the contents of *features*
-	}
-	*/
-
-
 	return tokens;
 }
 
@@ -93,31 +95,33 @@ int apply_op(std::string &op, int a, int b) {
 
 }
 
+// converts the string representation of a integer or float into our numeric union-like object
+numeric_t get_numeric_literal( std::string &src ) {
+
+	numeric_t literal;
+
+	// a float literal must contain a decimal point in order to be considered as such
+	if(src.find('.') != std::string::npos) {
+		literal.Tag = numeric_t::FLOAT;
+		literal.Float = std::stof(src);
+	}
+	// otherwise, it must be an int
+	else {
+		literal.Tag = numeric_t::INT;
+		literal.Int = std::stoi(src);
+	}
+
+	return literal;
+}
+
+
 
 // let's just try handling some simple operations with any number of expressions first
 std::pair<int, int> eval( std::vector<string> &expression, int start=0 ) {
 
 
-	// issue: nesting quickly becomes a problem because I have to make sure index gets updated
-	// possible solutions:
-	// 		- Pass index as a int* and update it from every function - NO 
-	//      - Make index a global variable and update it from every function - NO
-	//		- Return the updated index as a second return value -> std::pair, std::tuple, std::tie - YES
-
-	/*
-	   |
-	   v
-	[ '(', +, 3, 4, 5 ')' ]
-
-	       |
-	       v
-	[ '(', +, 3, 4, 5 ')' ]
-
-			  |
-	          v
-	[ '(', +, 3, 4, 5 ')' ]
-
-	*/
+	// if this expression does not start with an lparen, then we just return the 
+	// value that we're pointed at
 	if(expression[start] != "(" )
 		return std::make_pair(std::stoi(expression[start]), start);
 
@@ -126,10 +130,8 @@ std::pair<int, int> eval( std::vector<string> &expression, int start=0 ) {
 	
 
 	std::string op = expression[index];
-	index++;
+	++index;
 
-
-	// TODO: make it possible for this to be a sub S-exp too
 	std::pair<int, int> first_result = eval(expression, index);
 	index = first_result.second;
 
